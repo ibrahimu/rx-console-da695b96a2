@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة رادار وقاء</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --green: #178350; --deep: #0B3D2E; --ink: #142820; --muted: #5C7267;
+    --paper: #F4F8F5; --card: #FFFFFF; --line: #DCE7DE; --red: #B6312C; --amber: #B8862F;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+         font-family: "IBM Plex Sans Arabic", system-ui, sans-serif; line-height: 1.6; }
+  header { background: linear-gradient(160deg, var(--deep), #14603F); color: #fff; padding: 18px 24px;
+           display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+  header .who { font-size: 13px; opacity: .85; }
+  header button { background: rgba(255,255,255,.14); color: #fff; border: 0; padding: 8px 14px;
+                  border-radius: 8px; cursor: pointer; font-family: inherit; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 16px; color: var(--green); }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tabs button { border: 1px solid var(--line); background: var(--card); color: var(--green); padding: 8px 16px;
+                 border-radius: 999px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 14px; }
+  .tabs button.on { background: var(--green); color: #fff; border-color: var(--green); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .stat .n { font-size: 26px; font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 12.5px; color: var(--muted); }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 4px; }
+  input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px;
+                  font-family: inherit; font-size: 14px; background: #fff; color: var(--ink); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .row > * { flex: 1; min-width: 160px; }
+  .btn { background: var(--green); color: #fff; border: 0; padding: 10px 18px; border-radius: 9px; cursor: pointer;
+         font-family: inherit; font-weight: 600; font-size: 14px; }
+  .btn.ghost { background: transparent; color: var(--green); border: 1px solid var(--green); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+  .wrap { overflow-x: auto; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+          background: #E8F3ED; color: var(--green); }
+  .pill.admin { background: #FBF4E4; color: var(--amber); }
+  .code { font-family: ui-monospace, Menlo, monospace; direction: ltr; display: inline-block; letter-spacing: .04em; }
+  .msg { padding: 10px 12px; border-radius: 9px; font-size: 13.5px; margin-top: 10px; }
+  .msg.ok { background: #E8F3ED; color: var(--green); }
+  .msg.err { background: #FAE9E8; color: var(--red); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; color: var(--muted);
+          cursor: pointer; }
+  .drop.over { border-color: var(--green); background: #E8F3ED; }
+  .hidden { display: none !important; }
+  .login { max-width: 420px; margin: 60px auto; }
+  .result { background: #E8F3ED; border-radius: 12px; padding: 16px; margin-top: 12px; }
+  .result .big { font-size: 20px; font-weight: 700; color: var(--deep); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>لوحة رادار وقاء</h1>
+  <div id="whoWrap" class="hidden"><span class="who" id="who"></span> <button id="logout">خروج</button></div>
+</header>
+
+<main>
+  <!-- ═══ تسجيل الدخول ═══ -->
+  <section id="loginView" class="card login">
+    <h2>تسجيل الدخول</h2>
+    <label>البريد الإلكتروني</label>
+    <input id="email" type="email" autocomplete="username" dir="ltr">
+    <label>كلمة المرور</label>
+    <input id="password" type="password" autocomplete="current-password" dir="ltr">
+    <div style="margin-top:14px"><button class="btn" id="loginBtn">دخول</button></div>
+    <div id="loginMsg"></div>
+    <p class="muted" style="margin-top:14px">الدخول للمشرفين المدعوين فقط.</p>
+  </section>
+
+  <!-- ═══ تعيين كلمة المرور (بعد الدعوة) ═══ -->
+  <section id="setPassView" class="card login hidden">
+    <h2>مرحبًا — عيّن كلمة مرورك</h2>
+    <p class="muted">هذه الخطوة مرة واحدة. بعدها تدخل التطبيق بإيميلك وكلمة المرور، ثم ببصمة الوجه.</p>
+    <label>الاسم الثنائي</label>
+    <input id="fullName" placeholder="الاسم الأول واسم العائلة">
+    <label>كلمة المرور الجديدة</label>
+    <input id="newPass" type="password" autocomplete="new-password" dir="ltr">
+    <label>تأكيد كلمة المرور</label>
+    <input id="newPass2" type="password" autocomplete="new-password" dir="ltr">
+    <div style="margin-top:14px"><button class="btn" id="setPassBtn">حفظ</button></div>
+    <div id="setPassMsg"></div>
+  </section>
+
+  <!-- ═══ اللوحة ═══ -->
+  <section id="app" class="hidden">
+    <div class="grid" id="stats"></div>
+
+    <div class="tabs">
+      <button data-tab="codes" class="on">الشفرات السرية</button>
+      <button data-tab="logs">سجل البحث</button>
+      <button data-tab="users">المستخدمون</button>
+    </div>
+
+    <!-- الشفرات -->
+    <div id="tab-codes">
+      <div class="card">
+        <h2>تتبّع ملف</h2>
+        <p class="muted">الصق الشفرة، أو ارفع ملف PDF / PowerPoint وتُستخرج تلقائيًا.</p>
+        <div class="row">
+          <div><label>الشفرة</label><input id="codeInput" class="code" placeholder="RX-XXXX-XXXX-XXXX" dir="ltr"></div>
+          <div style="flex:0"><button class="btn" id="lookupBtn">بحث</button></div>
+        </div>
+        <div class="drop" id="drop" style="margin-top:12px">اسحب الملف هنا أو اضغط للاختيار (PDF أو PPTX)
+          <input type="file" id="file" accept=".pdf,.pptx" class="hidden"></div>
+        <div id="lookupResult"></div>
+      </div>
+      <div class="card">
+        <h2>كل الملفات المُصدَّرة</h2>
+        <div class="wrap"><table id="codesTable"><thead><tr>
+          <th>الشفرة</th><th>النوع</th><th>العنوان</th><th>المُصدِر</th><th>التاريخ</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- سجل البحث -->
+    <div id="tab-logs" class="hidden">
+      <div class="card">
+        <h2>من بحث ومتى</h2>
+        <div class="row">
+          <div><label>المستخدم</label><select id="logUser"><option value="">الكل</option></select></div>
+          <div><label>من تاريخ</label><input id="logFrom" type="date"></div>
+          <div><label>إلى تاريخ</label><input id="logTo" type="date"></div>
+          <div style="flex:0"><button class="btn ghost" id="logFilter">تصفية</button></div>
+        </div>
+        <div class="wrap" style="margin-top:12px"><table id="logsTable"><thead><tr>
+          <th>المستخدم</th><th>الوضع</th><th>البحث</th><th>النطاق</th><th>الوقت</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- المستخدمون -->
+    <div id="tab-users" class="hidden">
+      <div class="card">
+        <h2>دعوة مستخدم</h2>
+        <p class="muted">يصله إيميل تفعيل يعيّن منه كلمة مروره، ثم يدخل التطبيق.</p>
+        <div class="row">
+          <div><label>البريد</label><input id="invEmail" type="email" dir="ltr"></div>
+          <div><label>الاسم (اختياري)</label><input id="invName"></div>
+          <div><label>الصلاحية</label><select id="invRole"><option value="user">مستخدم</option><option value="admin">مشرف (يرى اللوحة)</option></select></div>
+          <div style="flex:0"><button class="btn" id="inviteBtn">دعوة</button></div>
+        </div>
+        <div id="inviteMsg"></div>
+      </div>
+      <div class="card">
+        <h2>الأعضاء</h2>
+        <div class="wrap"><table id="usersTable"><thead><tr>
+          <th>الاسم</th><th>البريد</th><th>الصلاحية</th><th>انضم</th><th>آخر ظهور</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="config.js"></script>
+<script>
+const sb = supabase.createClient(WAQAA_CONFIG.url, WAQAA_CONFIG.anonKey);
+const $ = (id) => document.getElementById(id);
+const CODE_RE = /RX-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}/g;
+const fmt = (iso) => iso ? new Intl.DateTimeFormat("ar-SA-u-nu-latn-ca-gregory",
+  { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(iso)) : "—";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const msg = (id, text, ok) => { $(id).innerHTML = text ? `<div class="msg ${ok ? "ok" : "err"}">${esc(text)}</div>` : ""; };
+
+// ═══ الدخول / الدعوة ═══
+async function boot() {
+  // رابط الدعوة يصل بجلسة في الـhash — نعرض نموذج كلمة المرور
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const { data: { session } } = await sb.auth.getSession();
+  if (session && (hash.get("type") === "invite" || hash.get("type") === "recovery")) {
+    show("setPassView");
+    return;
+  }
+  if (session) return enter(session);
+  show("loginView");
+}
+
+function show(id) {
+  for (const v of ["loginView", "setPassView", "app"]) $(v).classList.toggle("hidden", v !== id);
+  $("whoWrap").classList.toggle("hidden", id !== "app");
+}
+
+$("loginBtn").onclick = async () => {
+  msg("loginMsg", "");
+  const { data, error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
+  if (error) return msg("loginMsg", "تعذر الدخول: تحقق من البريد وكلمة المرور.", false);
+  enter(data.session);
+};
+
+$("setPassBtn").onclick = async () => {
+  const p1 = $("newPass").value, p2 = $("newPass2").value, name = $("fullName").value.trim();
+  if (!name) return msg("setPassMsg", "اكتب اسمك الثنائي.", false);
+  if (p1.length < 8) return msg("setPassMsg", "كلمة المرور 8 أحرف على الأقل.", false);
+  if (p1 !== p2) return msg("setPassMsg", "كلمتا المرور غير متطابقتين.", false);
+  const { error } = await sb.auth.updateUser({ password: p1, data: { full_name: name } });
+  if (error) return msg("setPassMsg", error.message, false);
+  const { data: { user } } = await sb.auth.getUser();
+  await sb.from("profiles").update({ full_name: name }).eq("id", user.id);
+  msg("setPassMsg", "تم. افتح تطبيق رادار وقاء وادخل بإيميلك وكلمة المرور.", true);
+  history.replaceState(null, "", location.pathname);
+  setTimeout(boot, 1500);
+};
+
+$("logout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+async function enter(session) {
+  const { data: me } = await sb.from("profiles").select("full_name, email, role").eq("id", session.user.id).single();
+  if (me?.role !== "admin") {
+    show("loginView");
+    msg("loginMsg", "حسابك مفعّل للتطبيق، لكن اللوحة للمشرفين فقط.", false);
+    await sb.auth.signOut();
+    return;
+  }
+  $("who").textContent = `${me.full_name || me.email} — مشرف`;
+  show("app");
+  await Promise.all([loadStats(), loadCodes(), loadLogs(), loadUsers()]);
+}
+
+// ═══ التبويبات ═══
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  for (const t of ["codes", "logs", "users"]) $("tab-" + t).classList.toggle("hidden", t !== b.dataset.tab);
+});
+
+// ═══ الإحصاءات ═══
+async function loadStats() {
+  const [u, l, c, today] = await Promise.all([
+    sb.from("profiles").select("id", { count: "exact", head: true }),
+    sb.from("search_logs").select("id", { count: "exact", head: true }),
+    sb.from("report_codes").select("code", { count: "exact", head: true }),
+    sb.from("search_logs").select("id", { count: "exact", head: true })
+      .gte("started_at", new Date(Date.now() - 86400000).toISOString()),
+  ]);
+  $("stats").innerHTML = [
+    ["المستخدمون", u.count], ["عمليات البحث", l.count], ["ملفات مُصدَّرة", c.count], ["بحث آخر 24 ساعة", today.count],
+  ].map(([l, n]) => `<div class="stat"><div class="n">${n ?? 0}</div><div class="l">${l}</div></div>`).join("");
+}
+
+// ═══ الشفرات ═══
+async function loadCodes() {
+  const { data } = await sb.from("report_codes_with_owner").select("*").order("created_at", { ascending: false }).limit(300);
+  $("codesTable").querySelector("tbody").innerHTML = (data ?? []).map(r => `<tr>
+    <td><span class="code">${esc(r.code)}</span></td><td><span class="pill">${esc(r.kind)}</span></td>
+    <td>${esc(r.title)}</td><td>${esc(r.full_name || r.email)}</td><td>${fmt(r.created_at)}</td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">لا ملفات بعد.</td></tr>`;
+}
+
+async function lookup(code) {
+  code = (code || "").trim().toUpperCase();
+  if (!code) return;
+  $("codeInput").value = code;
+  const { data } = await sb.from("report_codes_with_owner").select("*").eq("code", code).maybeSingle();
+  $("lookupResult").innerHTML = data
+    ? `<div class="result"><div class="big">${esc(data.full_name || data.email)}</div>
+       <div>${esc(data.email)} — <span class="pill">${esc(data.kind)}</span> ${esc(data.title)}</div>
+       <div class="muted">أُصدر في ${fmt(data.created_at)}${data.device ? " · " + esc(data.device) : ""}</div></div>`
+    : `<div class="msg err">الشفرة <span class="code">${esc(code)}</span> غير مسجلة — قد تكون من جهاز لم يزامن بعد.</div>`;
+}
+$("lookupBtn").onclick = () => lookup($("codeInput").value);
+$("codeInput").onkeydown = (e) => { if (e.key === "Enter") lookup($("codeInput").value); };
+
+// استخراج الشفرة من الملف نفسه: PDF بالبحث في بايتاته، PPTX من core.xml
+async function extractCode(file) {
+  if (/\.pptx$/i.test(file.name)) {
+    const zip = await JSZip.loadAsync(file);
+    const core = await zip.file("docProps/core.xml")?.async("string");
+    const hit = core?.match(CODE_RE);
+    if (hit) return hit[0];
+    // احتياط: الشرائح
+    for (const name of Object.keys(zip.files).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n))) {
+      const x = await zip.file(name).async("string");
+      const h = x.match(CODE_RE); if (h) return h[0];
+    }
+    return null;
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let text = ""; for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+  const hit = text.match(CODE_RE);
+  return hit ? hit[0] : null;
+}
+async function handleFile(file) {
+  if (!file) return;
+  $("lookupResult").innerHTML = `<div class="muted">جارٍ قراءة ${esc(file.name)}…</div>`;
+  const code = await extractCode(file);
+  if (!code) return $("lookupResult").innerHTML = `<div class="msg err">لم تُعثر شفرة في هذا الملف — قد يكون من إصدار قديم أو أُزيلت بياناته.</div>`;
+  lookup(code);
+}
+$("drop").onclick = () => $("file").click();
+$("file").onchange = (e) => handleFile(e.target.files[0]);
+$("drop").ondragover = (e) => { e.preventDefault(); $("drop").classList.add("over"); };
+$("drop").ondragleave = () => $("drop").classList.remove("over");
+$("drop").ondrop = (e) => { e.preventDefault(); $("drop").classList.remove("over"); handleFile(e.dataTransfer.files[0]); };
+
+// ═══ سجل البحث ═══
+async function loadLogs() {
+  let q = sb.from("search_logs_with_owner").select("*").order("started_at", { ascending: false }).limit(500);
+  const u = $("logUser").value, from = $("logFrom").value, to = $("logTo").value;
+  if (u) q = q.eq("email", u);
+  if (from) q = q.gte("started_at", from + "T00:00:00+03:00");
+  if (to) q = q.lte("started_at", to + "T23:59:59+03:00");
+  const { data } = await q;
+  $("logsTable").querySelector("tbody").innerHTML = (data ?? []).map(r => `<tr>
+    <td>${esc(r.full_name || r.email)}</td><td><span class="pill">${esc(r.mode)}</span></td>
+    <td>${esc(r.query)}</td><td>${esc(r.region || "—")}</td><td>${fmt(r.started_at)}</td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">لا عمليات بحث بعد.</td></tr>`;
+}
+$("logFilter").onclick = loadLogs;
+
+// ═══ المستخدمون ═══
+async function loadUsers() {
+  const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: false });
+  $("usersTable").querySelector("tbody").innerHTML = (data ?? []).map(p => `<tr>
+    <td>${esc(p.full_name || "—")}</td><td dir="ltr" style="text-align:right">${esc(p.email)}</td>
+    <td><span class="pill ${p.role === "admin" ? "admin" : ""}">${p.role === "admin" ? "مشرف" : "مستخدم"}</span></td>
+    <td>${fmt(p.created_at)}</td><td>${fmt(p.last_seen)}</td></tr>`).join("");
+  $("logUser").innerHTML = `<option value="">الكل</option>` +
+    (data ?? []).map(p => `<option value="${esc(p.email)}">${esc(p.full_name || p.email)}</option>`).join("");
+}
+
+$("inviteBtn").onclick = async () => {
+  const email = $("invEmail").value.trim();
+  if (!email) return msg("inviteMsg", "اكتب البريد.", false);
+  $("inviteBtn").disabled = true;
+  msg("inviteMsg", "جارٍ الإرسال…", true);
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(`${WAQAA_CONFIG.url}/functions/v1/invite-user`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}`, "apikey": WAQAA_CONFIG.anonKey },
+    body: JSON.stringify({ email, full_name: $("invName").value.trim(), role: $("invRole").value }),
+  });
+  const out = await res.json().catch(() => ({}));
+  $("inviteBtn").disabled = false;
+  if (!res.ok) return msg("inviteMsg", out.error || "تعذر إرسال الدعوة.", false);
+  msg("inviteMsg", `أُرسلت الدعوة إلى ${email}.`, true);
+  $("invEmail").value = ""; $("invName").value = "";
+  loadUsers(); loadStats();
+};
+
+boot();
+</script>
+</body>
+</html>
