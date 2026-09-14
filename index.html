@@ -114,20 +114,29 @@
     <input id="password" type="password" autocomplete="current-password" dir="ltr">
     <div style="margin-top:14px"><button class="btn" id="loginBtn">دخول</button></div>
     <div id="loginMsg"></div>
-    <p class="muted" style="margin-top:14px">الدخول للمشرفين المدعوين فقط.</p>
+    <p class="muted" style="margin-top:14px">
+      <a href="#" id="goActivate" style="color:var(--green)">أول مرة؟ فعّل حسابك بالكود</a> ·
+      <a href="#" id="goReset" style="color:var(--green)">نسيت كلمة المرور؟</a>
+    </p>
   </section>
 
-  <!-- ═══ تعيين كلمة المرور (بعد الدعوة) ═══ -->
+  <!-- ═══ تفعيل الحساب / استعادة كلمة المرور بالكود ═══ -->
   <section id="setPassView" class="card login hidden">
-    <h2>مرحبًا — عيّن كلمة مرورك</h2>
-    <p class="muted">هذه الخطوة مرة واحدة. بعدها تدخل التطبيق بإيميلك وكلمة المرور، ثم ببصمة الوجه.</p>
-    <label>الاسم الثنائي</label>
-    <input id="fullName" placeholder="الاسم الأول واسم العائلة">
+    <h2 id="codeTitle">تفعيل الحساب</h2>
+    <p class="muted" id="codeLead">أدخل بريدك والكود المكوّن من 6 أرقام الذي وصلك، ثم اختر كلمة مرورك.</p>
+    <label>البريد الإلكتروني</label>
+    <input id="codeEmail" type="email" autocomplete="username" dir="ltr">
+    <label>الكود</label>
+    <input id="codeInputAuth" inputmode="numeric" maxlength="6" class="code" dir="ltr" placeholder="123456">
     <label>كلمة المرور الجديدة</label>
     <input id="newPass" type="password" autocomplete="new-password" dir="ltr">
     <label>تأكيد كلمة المرور</label>
     <input id="newPass2" type="password" autocomplete="new-password" dir="ltr">
-    <div style="margin-top:14px"><button class="btn" id="setPassBtn">حفظ</button></div>
+    <div style="margin-top:14px" class="row">
+      <div style="flex:0"><button class="btn" id="setPassBtn">حفظ</button></div>
+      <div style="flex:0"><button class="btn ghost" id="sendResetBtn">إرسال كود استعادة</button></div>
+      <div style="flex:0"><button class="btn ghost" id="backToLogin">رجوع</button></div>
+    </div>
     <div id="setPassMsg"></div>
   </section>
 
@@ -182,7 +191,7 @@
     <div id="tab-users" class="hidden">
       <div class="card">
         <h2>دعوة مستخدم</h2>
-        <p class="muted">يصله إيميل تفعيل يعيّن منه كلمة مروره، ثم يدخل التطبيق.</p>
+        <p class="muted">يصله كود من 6 أرقام يفعّل به حسابه من التطبيق ويختار كلمة مروره.</p>
         <div class="row">
           <div><label>البريد</label><input id="invEmail" type="email" dir="ltr"></div>
           <div><label>الاسم (اختياري)</label><input id="invName"></div>
@@ -217,13 +226,7 @@ const msg = (id, text, ok) => { $(id).innerHTML = text ? `<div class="msg ${ok ?
 
 // ═══ الدخول / الدعوة ═══
 async function boot() {
-  // رابط الدعوة يصل بجلسة في الـhash — نعرض نموذج كلمة المرور
-  const hash = new URLSearchParams(location.hash.slice(1));
   const { data: { session } } = await sb.auth.getSession();
-  if (session && (hash.get("type") === "invite" || hash.get("type") === "recovery")) {
-    show("setPassView");
-    return;
-  }
   if (session) return enter(session);
   show("loginView");
 }
@@ -240,17 +243,43 @@ $("loginBtn").onclick = async () => {
   enter(data.session);
 };
 
+let codeKind = "invite";
+function openCode(kind) {
+  codeKind = kind;
+  $("codeTitle").textContent = kind === "invite" ? "تفعيل الحساب" : "استعادة كلمة المرور";
+  $("codeLead").textContent = kind === "invite"
+    ? "أدخل بريدك والكود المكوّن من 6 أرقام الذي وصلك، ثم اختر كلمة مرورك."
+    : "اطلب كودًا إلى بريدك، ثم أدخله مع كلمة المرور الجديدة.";
+  $("sendResetBtn").classList.toggle("hidden", kind !== "recovery");
+  $("codeEmail").value = $("email").value.trim();
+  msg("setPassMsg", "");
+  show("setPassView");
+}
+$("goActivate").onclick = (e) => { e.preventDefault(); openCode("invite"); };
+$("goReset").onclick = (e) => { e.preventDefault(); openCode("recovery"); };
+$("backToLogin").onclick = () => show("loginView");
+
+$("sendResetBtn").onclick = async () => {
+  const email = $("codeEmail").value.trim().toLowerCase();
+  if (!email.includes("@")) return msg("setPassMsg", "اكتب البريد.", false);
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  msg("setPassMsg", error ? (error.status === 429 ? "أُرسل كود قبل قليل — انتظر دقيقة." : error.message) : "أُرسل الكود إلى بريدك.", !error);
+};
+
 $("setPassBtn").onclick = async () => {
-  const p1 = $("newPass").value, p2 = $("newPass2").value, name = $("fullName").value.trim();
-  if (!name) return msg("setPassMsg", "اكتب اسمك الثنائي.", false);
+  const email = $("codeEmail").value.trim().toLowerCase();
+  // لوحة الأرقام العربية تكتب ٠١٢… — نحوّلها قبل الإرسال
+  const token = $("codeInputAuth").value.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g, "");
+  const p1 = $("newPass").value, p2 = $("newPass2").value;
+  if (!email.includes("@")) return msg("setPassMsg", "اكتب البريد.", false);
+  if (token.length !== 6) return msg("setPassMsg", "الكود 6 أرقام.", false);
   if (p1.length < 8) return msg("setPassMsg", "كلمة المرور 8 أحرف على الأقل.", false);
   if (p1 !== p2) return msg("setPassMsg", "كلمتا المرور غير متطابقتين.", false);
-  const { error } = await sb.auth.updateUser({ password: p1, data: { full_name: name } });
+  const { error: vErr } = await sb.auth.verifyOtp({ email, token, type: codeKind });
+  if (vErr) return msg("setPassMsg", "الكود غير صحيح أو انتهت صلاحيته.", false);
+  const { error } = await sb.auth.updateUser({ password: p1 });
   if (error) return msg("setPassMsg", error.message, false);
-  const { data: { user } } = await sb.auth.getUser();
-  await sb.from("profiles").update({ full_name: name }).eq("id", user.id);
   msg("setPassMsg", "تم. افتح تطبيق رادار وقاء وادخل بإيميلك وكلمة المرور.", true);
-  history.replaceState(null, "", location.pathname);
   setTimeout(boot, 1500);
 };
 
@@ -441,7 +470,7 @@ $("inviteBtn").onclick = async () => {
     return msg("inviteMsg", e.message, false);
   }
   $("inviteBtn").disabled = false;
-  msg("inviteMsg", `أُرسلت الدعوة إلى ${email}.`, true);
+  msg("inviteMsg", `أُرسل كود التفعيل إلى ${email} — يفعّل حسابه من التطبيق («أول مرة؟ فعّل حسابك»).`, true);
   $("invEmail").value = ""; $("invName").value = "";
   loadUsers(); loadStats();
 };
