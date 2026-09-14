@@ -66,7 +66,8 @@
           cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
   .mini.danger { color: var(--red); border-color: #F0C9C7; }
   .mini:disabled { opacity: .5; cursor: default; }
-  header .who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+  #whoWrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  header .who { display: block; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
 
   /* الهاتف: الجداول تتحوّل إلى بطاقات، والعمود الأول يصير عنوانًا */
   @media (max-width: 640px) {
@@ -123,7 +124,7 @@
   <!-- ═══ تفعيل الحساب / استعادة كلمة المرور بالكود ═══ -->
   <section id="setPassView" class="card login hidden">
     <h2 id="codeTitle">تفعيل الحساب</h2>
-    <p class="muted" id="codeLead">أدخل بريدك والكود المكوّن من 6 أرقام الذي وصلك، ثم اختر كلمة مرورك.</p>
+    <p class="muted" id="codeLead">أدخل بريدك وكود التفعيل الذي وصلك، ثم اختر كلمة مرورك.</p>
     <label>البريد الإلكتروني</label>
     <input id="codeEmail" type="email" autocomplete="username" dir="ltr">
     <label>الكود</label>
@@ -147,7 +148,7 @@
     <div class="tabs">
       <button data-tab="codes" class="on">الكود</button>
       <button data-tab="logs">سجل البحث</button>
-      <button data-tab="users">المستخدمون</button>
+      <button data-tab="users">الأعضاء</button>
     </div>
 
     <!-- الشفرات -->
@@ -176,13 +177,13 @@
       <div class="card">
         <h2>من بحث ومتى</h2>
         <div class="row">
-          <div><label>المستخدم</label><select id="logUser"><option value="">الكل</option></select></div>
+          <div><label>العضو</label><select id="logUser"><option value="">الكل</option></select></div>
           <div><label>من تاريخ</label><input id="logFrom" type="date"></div>
           <div><label>إلى تاريخ</label><input id="logTo" type="date"></div>
           <div style="flex:0"><button class="btn ghost" id="logFilter">تصفية</button></div>
         </div>
         <div class="wrap" style="margin-top:12px"><table id="logsTable"><thead><tr>
-          <th>المستخدم</th><th>الوضع</th><th>البحث</th><th>النطاق</th><th>الوقت</th>
+          <th>العضو</th><th>الوضع</th><th>البحث</th><th>النطاق</th><th>الوقت</th>
         </tr></thead><tbody></tbody></table></div>
       </div>
     </div>
@@ -190,7 +191,7 @@
     <!-- المستخدمون -->
     <div id="tab-users" class="hidden">
       <div class="card">
-        <h2>دعوة مستخدم</h2>
+        <h2>دعوة عضو</h2>
         <p class="muted">يصله كود من 6 أرقام يفعّل به حسابه من التطبيق ويختار كلمة مروره.</p>
         <div class="row">
           <div><label>البريد</label><input id="invEmail" type="email" dir="ltr"></div>
@@ -206,7 +207,7 @@
         <div class="wrap"><table id="usersTable"><thead><tr>
           <th>الاسم</th><th>البريد</th><th>الصلاحية</th><th>انضم</th><th>آخر ظهور</th><th></th>
         </tr></thead><tbody></tbody></table></div>
-        <p class="muted" style="margin:10px 0 0">المشرف الأساسي يرقّي ويوقف ويحذف أي حساب؛ المشرف يوقف ويحذف المستخدمين فقط. الإيقاف يمنع الدخول فورًا ويمكن التراجع عنه، وسجل العضو وملفاته تبقى بعد الحذف.</p>
+        <p class="muted" style="margin:10px 0 0">الإيقاف يمنع الدخول فورًا ويمكن التراجع عنه؛ الحذف يُبقي سجل العضو وملفاته.</p>
       </div>
     </div>
   </section>
@@ -239,7 +240,8 @@ function show(id) {
 $("loginBtn").onclick = async () => {
   msg("loginMsg", "");
   const { data, error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
-  if (error) return msg("loginMsg", "تعذر الدخول: تحقق من البريد وكلمة المرور.", false);
+  if (error) return msg("loginMsg", (error.code === "user_banned" || /banned/i.test(error.message || ""))
+    ? "حسابك موقوف مؤقتًا — تواصل مع المشرف الأساسي." : "تعذر الدخول: تحقق من البريد وكلمة المرور.", false);
   enter(data.session);
 };
 
@@ -248,8 +250,8 @@ function openCode(kind) {
   codeKind = kind;
   $("codeTitle").textContent = kind === "invite" ? "تفعيل الحساب" : "استعادة كلمة المرور";
   $("codeLead").textContent = kind === "invite"
-    ? "أدخل بريدك والكود المكوّن من 6 أرقام الذي وصلك، ثم اختر كلمة مرورك."
-    : "اطلب كودًا إلى بريدك، ثم أدخله مع كلمة المرور الجديدة.";
+    ? "أدخل بريدك وكود التفعيل الذي وصلك، ثم اختر كلمة مرورك."
+    : "أرسل كودًا إلى بريدك، ثم أدخله مع كلمة المرور الجديدة.";
   $("sendResetBtn").classList.toggle("hidden", kind !== "recovery");
   $("codeEmail").value = $("email").value.trim();
   msg("setPassMsg", "");
@@ -279,7 +281,7 @@ $("setPassBtn").onclick = async () => {
   if (vErr) return msg("setPassMsg", "الكود غير صحيح أو انتهت صلاحيته.", false);
   const { error } = await sb.auth.updateUser({ password: p1 });
   if (error) return msg("setPassMsg", error.message, false);
-  msg("setPassMsg", "تم. افتح تطبيق رادار وقاء وادخل بإيميلك وكلمة المرور.", true);
+  msg("setPassMsg", "تم. افتح تطبيق رادار وقاء وادخل ببريدك وكلمة المرور.", true);
   setTimeout(boot, 1500);
 };
 
@@ -300,7 +302,9 @@ async function enter(session) {
   ME = me;
   $("who").textContent = `${me.full_name || me.email} — ${ROLE_LABEL[me.role]}`;
   // دعوة المشرفين حكر على المشرف الأساسي
-  $("invRole").querySelector('option[value="admin"]').hidden = me.role !== "owner";
+  const adminOpt = $("invRole").querySelector('option[value="admin"]');
+  adminOpt.disabled = me.role !== "owner"; adminOpt.hidden = me.role !== "owner";
+  if (me.role !== "owner") $("invRole").value = "user";
   show("app");
   await Promise.all([loadStats(), loadCodes(), loadLogs(), loadUsers()]);
 }
@@ -336,7 +340,7 @@ async function loadStats() {
       .gte("started_at", new Date(Date.now() - 86400000).toISOString()),
   ]);
   $("stats").innerHTML = [
-    ["المستخدمون", u.count], ["عمليات البحث", l.count], ["ملفات مُصدَّرة", c.count], ["بحث آخر 24 ساعة", today.count],
+    ["الأعضاء", u.count], ["عمليات البحث", l.count], ["ملفات مُصدَّرة", c.count], ["بحث آخر 24 ساعة", today.count],
   ].map(([l, n]) => `<div class="stat"><div class="n">${n ?? 0}</div><div class="l">${l}</div></div>`).join("");
 }
 
@@ -369,7 +373,7 @@ async function lookup(code) {
     ? `<div class="result"><div class="big">${esc(data.full_name || data.email || "عضو محذوف")}</div>
        <div>${esc(data.email || "")} — <span class="pill">${esc(data.kind)}</span> ${esc(data.title)}</div>
        <div class="muted">أُصدر في ${fmt(data.created_at)}${data.device ? " · " + esc(data.device) : ""}${data.owner_deleted ? " · الحساب محذوف والسجل محفوظ" : ""}</div>${relatedHtml}</div>`
-    : `<div class="msg err">الكود <span class="code">${esc(code)}</span> غير مسجل — قد يكون من جهاز لم يزامن بعد.</div>`;
+    : `<div class="msg err">الكود <span class="code">${esc(code)}</span> غير مسجل — قد يكون من جهاز لم يرفع بياناته بعد.</div>`;
 }
 $("lookupBtn").onclick = () => lookup($("codeInput").value);
 $("codeInput").onkeydown = (e) => { if (e.key === "Enter") lookup($("codeInput").value); };
@@ -401,7 +405,7 @@ async function handleFile(file) {
   lookup(code);
 }
 $("drop").onclick = () => $("file").click();
-$("file").onchange = (e) => handleFile(e.target.files[0]);
+$("file").onchange = (e) => { handleFile(e.target.files[0]); e.target.value = ""; };
 $("drop").ondragover = (e) => { e.preventDefault(); $("drop").classList.add("over"); };
 $("drop").ondragleave = () => $("drop").classList.remove("over");
 $("drop").ondrop = (e) => { e.preventDefault(); $("drop").classList.remove("over"); handleFile(e.dataTransfer.files[0]); };
@@ -430,7 +434,7 @@ async function loadUsers() {
     <td data-l="انضم">${fmt(p.created_at)}</td><td data-l="آخر ظهور">${fmt(p.last_seen)}</td>
     <td data-l="" class="actions">${canTouch(p) ? `
       ${ME.role === "owner" ? `<button class="mini" data-act="set_role" data-role="${p.role === "admin" ? "user" : "admin"}">${p.role === "admin" ? "تحويل إلى مستخدم" : "ترقية إلى مشرف"}</button>` : ""}
-      <button class="mini" data-act="${p.suspended ? "unsuspend" : "suspend"}">${p.suspended ? "إعادة التفعيل" : "إيقاف مؤقت"}</button>
+      <button class="mini" data-act="${p.suspended ? "unsuspend" : "suspend"}">${p.suspended ? "رفع الإيقاف" : "إيقاف مؤقت"}</button>
       <button class="mini danger" data-act="delete">حذف</button>` : ""}</td></tr>`).join("");
   $("usersTable").querySelectorAll("button[data-act]").forEach(b => b.onclick = () => userAction(b, data));
   $("logUser").innerHTML = `<option value="">الكل</option>` +
@@ -445,7 +449,7 @@ async function userAction(btn, rows) {
   btn.disabled = true;
   try {
     await manage({ action: btn.dataset.act, user_id: id, role: btn.dataset.role });
-    const done = { delete: `حُذف ${p.email}.`, suspend: `أُوقف ${p.email} مؤقتًا.`, unsuspend: `أُعيد تفعيل ${p.email}.`, set_role: `تحدّثت صلاحية ${p.email}.` };
+    const done = { delete: `حُذف ${p.email}.`, suspend: `أُوقف ${p.email} مؤقتًا.`, unsuspend: `رُفع الإيقاف عن ${p.email}.`, set_role: `تغيّرت صلاحية ${p.email}.` };
     msg("inviteMsg", done[btn.dataset.act], true);
     await Promise.all([loadUsers(), loadStats()]);
   } catch (e) {
@@ -470,7 +474,7 @@ $("inviteBtn").onclick = async () => {
     return msg("inviteMsg", e.message, false);
   }
   $("inviteBtn").disabled = false;
-  msg("inviteMsg", `أُرسل كود التفعيل إلى ${email} — يفعّل حسابه من التطبيق («أول مرة؟ فعّل حسابك»).`, true);
+  msg("inviteMsg", `أُرسل كود التفعيل إلى ${email}.`, true);
   $("invEmail").value = ""; $("invName").value = "";
   loadUsers(); loadStats();
 };
