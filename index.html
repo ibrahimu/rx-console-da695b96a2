@@ -246,6 +246,7 @@ $("loginBtn").onclick = async () => {
 };
 
 let codeKind = "invite";
+let codeVerified = false;
 function openCode(kind) {
   codeKind = kind;
   $("codeTitle").textContent = kind === "invite" ? "تفعيل الحساب" : "استعادة كلمة المرور";
@@ -254,6 +255,7 @@ function openCode(kind) {
     : "أرسل كودًا إلى بريدك، ثم أدخله مع كلمة المرور الجديدة.";
   $("sendResetBtn").classList.toggle("hidden", kind !== "recovery");
   $("codeEmail").value = $("email").value.trim();
+  codeVerified = false;
   msg("setPassMsg", "");
   show("setPassView");
 }
@@ -277,10 +279,15 @@ $("setPassBtn").onclick = async () => {
   if (token.length !== 6) return msg("setPassMsg", "الكود 6 أرقام.", false);
   if (p1.length < 8) return msg("setPassMsg", "كلمة المرور 8 أحرف على الأقل.", false);
   if (p1 !== p2) return msg("setPassMsg", "كلمتا المرور غير متطابقتين.", false);
-  const { error: vErr } = await sb.auth.verifyOtp({ email, token, type: codeKind });
-  if (vErr) return msg("setPassMsg", "الكود غير صحيح أو انتهت صلاحيته.", false);
+  // الكود يُستهلك مرة واحدة: بعد نجاحه نبقي الجلسة ونعيد محاولة كلمة المرور فقط
+  if (!codeVerified) {
+    const { error: vErr } = await sb.auth.verifyOtp({ email, token, type: codeKind });
+    if (vErr) return msg("setPassMsg", "الكود غير صحيح أو انتهت صلاحيته.", false);
+    codeVerified = true;
+  }
   const { error } = await sb.auth.updateUser({ password: p1 });
-  if (error) return msg("setPassMsg", error.message, false);
+  if (error) return msg("setPassMsg", /weak|short/i.test(error.message) ? "كلمة المرور ضعيفة — 8 أحرف على الأقل." : error.message, false);
+  codeVerified = false;
   msg("setPassMsg", "تم. افتح تطبيق رادار وقاء وادخل ببريدك وكلمة المرور.", true);
   setTimeout(boot, 1500);
 };
