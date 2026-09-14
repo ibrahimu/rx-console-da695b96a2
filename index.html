@@ -59,6 +59,42 @@
   .login { max-width: 420px; margin: 60px auto; }
   .result { background: #E8F3ED; border-radius: 12px; padding: 16px; margin-top: 12px; }
   .result .big { font-size: 20px; font-weight: 700; color: var(--deep); }
+  .pill.owner { background: #FBF4E4; color: var(--amber); }
+  .pill.off { background: #FAE9E8; color: var(--red); }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mini { border: 1px solid var(--line); background: #fff; color: var(--green); padding: 5px 10px; border-radius: 8px;
+          cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .mini.danger { color: var(--red); border-color: #F0C9C7; }
+  .mini:disabled { opacity: .5; cursor: default; }
+  header .who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+
+  /* الهاتف: الجداول تتحوّل إلى بطاقات، والعمود الأول يصير عنوانًا */
+  @media (max-width: 640px) {
+    body { font-size: 15px; }
+    header { padding: 14px 16px; }
+    header h1 { font-size: 16px; }
+    main { padding: 14px 12px 60px; }
+    .card { padding: 14px; border-radius: 12px; }
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat { padding: 12px; }
+    .stat .n { font-size: 22px; }
+    .tabs button { flex: 1; padding: 9px 6px; font-size: 13px; text-align: center; }
+    .row > * { min-width: 100%; }
+    .row > [style*="flex:0"] { min-width: 100%; }
+    .row .btn { width: 100%; }
+    input, select { font-size: 16px; }
+    .wrap { overflow: visible; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    thead { display: none; }
+    tr { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; background: #fff; }
+    td { border: 0; padding: 3px 0; text-align: right; }
+    td::before { content: attr(data-l); color: var(--muted); font-size: 12px; margin-left: 6px; }
+    td[data-l=""]::before { content: none; }
+    td.lead { font-weight: 700; font-size: 15px; padding-bottom: 6px; }
+    td.lead::before { content: none; }
+    td.actions { padding-top: 8px; }
+    .result .big { font-size: 18px; }
+  }
 </style>
 </head>
 <body>
@@ -100,7 +136,7 @@
     <div class="grid" id="stats"></div>
 
     <div class="tabs">
-      <button data-tab="codes" class="on">الشفرات السرية</button>
+      <button data-tab="codes" class="on">الكود</button>
       <button data-tab="logs">سجل البحث</button>
       <button data-tab="users">المستخدمون</button>
     </div>
@@ -109,9 +145,9 @@
     <div id="tab-codes">
       <div class="card">
         <h2>تتبّع ملف</h2>
-        <p class="muted">الصق الشفرة، أو ارفع ملف PDF / PowerPoint وتُستخرج تلقائيًا.</p>
+        <p class="muted">كل ملف يُصدَّر يحمل كودًا مخفيًا. الصق الكود، أو ارفع ملف PDF / PowerPoint ويُستخرج تلقائيًا.</p>
         <div class="row">
-          <div><label>الشفرة</label><input id="codeInput" class="code" placeholder="RX-XXXX-XXXX-XXXX" dir="ltr"></div>
+          <div><label>الصق الكود</label><input id="codeInput" class="code" placeholder="RX-XXXX-XXXX-XXXX" dir="ltr"></div>
           <div style="flex:0"><button class="btn" id="lookupBtn">بحث</button></div>
         </div>
         <div class="drop" id="drop" style="margin-top:12px">اسحب الملف هنا أو اضغط للاختيار (PDF أو PPTX)
@@ -121,7 +157,7 @@
       <div class="card">
         <h2>كل الملفات المُصدَّرة</h2>
         <div class="wrap"><table id="codesTable"><thead><tr>
-          <th>الشفرة</th><th>النوع</th><th>العنوان</th><th>المُصدِر</th><th>التاريخ</th>
+          <th>الكود</th><th>النوع</th><th>العنوان</th><th>المُصدِر</th><th>التاريخ</th>
         </tr></thead><tbody></tbody></table></div>
       </div>
     </div>
@@ -150,16 +186,18 @@
         <div class="row">
           <div><label>البريد</label><input id="invEmail" type="email" dir="ltr"></div>
           <div><label>الاسم (اختياري)</label><input id="invName"></div>
-          <div><label>الصلاحية</label><select id="invRole"><option value="user">مستخدم</option><option value="admin">مشرف (يرى اللوحة)</option></select></div>
+          <div><label>الصلاحية</label><select id="invRole"><option value="user">مستخدم</option><option value="admin">مشرف (يدير الأعضاء ويرى اللوحة)</option></select></div>
           <div style="flex:0"><button class="btn" id="inviteBtn">دعوة</button></div>
         </div>
+        <p class="muted" id="roleDesc" style="margin:8px 0 0"></p>
         <div id="inviteMsg"></div>
       </div>
       <div class="card">
         <h2>الأعضاء</h2>
         <div class="wrap"><table id="usersTable"><thead><tr>
-          <th>الاسم</th><th>البريد</th><th>الصلاحية</th><th>انضم</th><th>آخر ظهور</th>
+          <th>الاسم</th><th>البريد</th><th>الصلاحية</th><th>انضم</th><th>آخر ظهور</th><th></th>
         </tr></thead><tbody></tbody></table></div>
+        <p class="muted" style="margin:10px 0 0">المشرف الأساسي يرقّي ويوقف ويحذف أي حساب؛ المشرف يوقف ويحذف المستخدمين فقط. الإيقاف يمنع الدخول فورًا ويمكن التراجع عنه، وسجل العضو وملفاته تبقى بعد الحذف.</p>
       </div>
     </div>
   </section>
@@ -218,17 +256,39 @@ $("setPassBtn").onclick = async () => {
 
 $("logout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
+let ME = null;
+const ROLE_LABEL = { owner: "المشرف الأساسي", admin: "مشرف", user: "مستخدم" };
+const ROLE_DESC = { user: "يبحث ويشغّل الرادار ويُصدر التقارير — كل ذلك يُسجَّل باسمه.", admin: "كل ما سبق، ويدير الأعضاء ويطّلع على السجل والكود." };
+
 async function enter(session) {
-  const { data: me } = await sb.from("profiles").select("full_name, email, role").eq("id", session.user.id).single();
-  if (me?.role !== "admin") {
+  const { data: me } = await sb.from("profiles").select("id, full_name, email, role").eq("id", session.user.id).single();
+  if (me?.role !== "admin" && me?.role !== "owner") {
     show("loginView");
     msg("loginMsg", "حسابك مفعّل للتطبيق، لكن اللوحة للمشرفين فقط.", false);
     await sb.auth.signOut();
     return;
   }
-  $("who").textContent = `${me.full_name || me.email} — مشرف`;
+  ME = me;
+  $("who").textContent = `${me.full_name || me.email} — ${ROLE_LABEL[me.role]}`;
+  // دعوة المشرفين حكر على المشرف الأساسي
+  $("invRole").querySelector('option[value="admin"]').hidden = me.role !== "owner";
   show("app");
   await Promise.all([loadStats(), loadCodes(), loadLogs(), loadUsers()]);
+}
+
+// نفس قاعدة الخادم، حتى لا يظهر زر سيرفضه: الأساسي يمسّ الجميع إلا نفسه؛ المشرف يمسّ المستخدمين فقط
+const canTouch = (p) => ME && p.id !== ME.id && p.role !== "owner" && (ME.role === "owner" || p.role === "user");
+
+async function manage(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(`${WAQAA_CONFIG.url}/functions/v1/manage-user`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}`, "apikey": WAQAA_CONFIG.anonKey },
+    body: JSON.stringify(payload),
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(out.error || "تعذر تنفيذ الإجراء.");
+  return out;
 }
 
 // ═══ التبويبات ═══
@@ -255,8 +315,8 @@ async function loadStats() {
 async function loadCodes() {
   const { data } = await sb.from("report_codes_with_owner").select("*").order("created_at", { ascending: false }).limit(300);
   $("codesTable").querySelector("tbody").innerHTML = (data ?? []).map(r => `<tr>
-    <td><span class="code">${esc(r.code)}</span></td><td><span class="pill">${esc(r.kind)}</span></td>
-    <td>${esc(r.title)}</td><td>${esc(r.full_name || r.email)}</td><td>${fmt(r.created_at)}</td></tr>`).join("")
+    <td class="lead"><span class="code">${esc(r.code)}</span></td><td data-l="النوع"><span class="pill">${esc(r.kind)}</span></td>
+    <td data-l="العنوان">${esc(r.title)}</td><td data-l="المُصدِر">${esc(r.full_name || r.email)}</td><td data-l="التاريخ">${fmt(r.created_at)}</td></tr>`).join("")
     || `<tr><td colspan="5" class="muted">لا ملفات بعد.</td></tr>`;
 }
 
@@ -265,11 +325,22 @@ async function lookup(code) {
   if (!code) return;
   $("codeInput").value = code;
   const { data } = await sb.from("report_codes_with_owner").select("*").eq("code", code).maybeSingle();
+  if (data) {
+    // البحث الذي سبق الإصدار خلال ساعة — غالبًا هو مصدر التقرير
+    const end = new Date(data.created_at), start = new Date(end.getTime() - 3600000);
+    const { data: related } = data.user_id ? await sb.from("search_logs_with_owner").select("*").eq("user_id", data.user_id)
+      .gte("started_at", start.toISOString()).lte("started_at", new Date(end.getTime() + 60000).toISOString())
+      .order("started_at", { ascending: false }).limit(10) : { data: [] };
+    var relatedHtml = (related ?? []).length
+      ? `<div style="margin-top:10px"><b style="font-size:13px">البحث الذي سبق الإصدار (خلال ساعة)</b>` +
+        related.map(r => `<div class="muted" style="margin-top:4px"><span class="pill">${esc(r.mode)}</span> ${esc(r.query)} — ${fmt(r.started_at)}</div>`).join("") + `</div>`
+      : `<div class="muted" style="margin-top:10px">لا عمليات بحث مسجلة في الساعة التي سبقت الإصدار.</div>`;
+  }
   $("lookupResult").innerHTML = data
-    ? `<div class="result"><div class="big">${esc(data.full_name || data.email)}</div>
-       <div>${esc(data.email)} — <span class="pill">${esc(data.kind)}</span> ${esc(data.title)}</div>
-       <div class="muted">أُصدر في ${fmt(data.created_at)}${data.device ? " · " + esc(data.device) : ""}</div></div>`
-    : `<div class="msg err">الشفرة <span class="code">${esc(code)}</span> غير مسجلة — قد تكون من جهاز لم يزامن بعد.</div>`;
+    ? `<div class="result"><div class="big">${esc(data.full_name || data.email || "عضو محذوف")}</div>
+       <div>${esc(data.email || "")} — <span class="pill">${esc(data.kind)}</span> ${esc(data.title)}</div>
+       <div class="muted">أُصدر في ${fmt(data.created_at)}${data.device ? " · " + esc(data.device) : ""}${data.owner_deleted ? " · الحساب محذوف والسجل محفوظ" : ""}</div>${relatedHtml}</div>`
+    : `<div class="msg err">الكود <span class="code">${esc(code)}</span> غير مسجل — قد يكون من جهاز لم يزامن بعد.</div>`;
 }
 $("lookupBtn").onclick = () => lookup($("codeInput").value);
 $("codeInput").onkeydown = (e) => { if (e.key === "Enter") lookup($("codeInput").value); };
@@ -297,7 +368,7 @@ async function handleFile(file) {
   if (!file) return;
   $("lookupResult").innerHTML = `<div class="muted">جارٍ قراءة ${esc(file.name)}…</div>`;
   const code = await extractCode(file);
-  if (!code) return $("lookupResult").innerHTML = `<div class="msg err">لم تُعثر شفرة في هذا الملف — قد يكون من إصدار قديم أو أُزيلت بياناته.</div>`;
+  if (!code) return $("lookupResult").innerHTML = `<div class="msg err">لم يُعثر على كود في هذا الملف — قد يكون من إصدار قديم أو أُزيلت بياناته.</div>`;
   lookup(code);
 }
 $("drop").onclick = () => $("file").click();
@@ -315,8 +386,8 @@ async function loadLogs() {
   if (to) q = q.lte("started_at", to + "T23:59:59+03:00");
   const { data } = await q;
   $("logsTable").querySelector("tbody").innerHTML = (data ?? []).map(r => `<tr>
-    <td>${esc(r.full_name || r.email)}</td><td><span class="pill">${esc(r.mode)}</span></td>
-    <td>${esc(r.query)}</td><td>${esc(r.region || "—")}</td><td>${fmt(r.started_at)}</td></tr>`).join("")
+    <td class="lead">${esc(r.full_name || r.email)}</td><td data-l="الوضع"><span class="pill">${esc(r.mode)}</span></td>
+    <td data-l="البحث">${esc(r.query)}</td><td data-l="النطاق">${esc(r.region || "—")}</td><td data-l="الوقت">${fmt(r.started_at)}</td></tr>`).join("")
     || `<tr><td colspan="5" class="muted">لا عمليات بحث بعد.</td></tr>`;
 }
 $("logFilter").onclick = loadLogs;
@@ -324,28 +395,52 @@ $("logFilter").onclick = loadLogs;
 // ═══ المستخدمون ═══
 async function loadUsers() {
   const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: false });
-  $("usersTable").querySelector("tbody").innerHTML = (data ?? []).map(p => `<tr>
-    <td>${esc(p.full_name || "—")}</td><td dir="ltr" style="text-align:right">${esc(p.email)}</td>
-    <td><span class="pill ${p.role === "admin" ? "admin" : ""}">${p.role === "admin" ? "مشرف" : "مستخدم"}</span></td>
-    <td>${fmt(p.created_at)}</td><td>${fmt(p.last_seen)}</td></tr>`).join("");
+  $("usersTable").querySelector("tbody").innerHTML = (data ?? []).map(p => `<tr data-id="${esc(p.id)}">
+    <td class="lead">${esc(p.full_name || "—")}</td><td data-l="البريد"><span dir="ltr" style="unicode-bidi:isolate">${esc(p.email)}</span></td>
+    <td data-l="الصلاحية"><span class="pill ${p.role === "user" ? "" : p.role}">${ROLE_LABEL[p.role] || esc(p.role)}</span>${p.suspended ? ' <span class="pill off">موقوف</span>' : ""}</td>
+    <td data-l="انضم">${fmt(p.created_at)}</td><td data-l="آخر ظهور">${fmt(p.last_seen)}</td>
+    <td data-l="" class="actions">${canTouch(p) ? `
+      ${ME.role === "owner" ? `<button class="mini" data-act="set_role" data-role="${p.role === "admin" ? "user" : "admin"}">${p.role === "admin" ? "تحويل إلى مستخدم" : "ترقية إلى مشرف"}</button>` : ""}
+      <button class="mini" data-act="${p.suspended ? "unsuspend" : "suspend"}">${p.suspended ? "إعادة التفعيل" : "إيقاف مؤقت"}</button>
+      <button class="mini danger" data-act="delete">حذف</button>` : ""}</td></tr>`).join("");
+  $("usersTable").querySelectorAll("button[data-act]").forEach(b => b.onclick = () => userAction(b, data));
   $("logUser").innerHTML = `<option value="">الكل</option>` +
     (data ?? []).map(p => `<option value="${esc(p.email)}">${esc(p.full_name || p.email)}</option>`).join("");
 }
+
+async function userAction(btn, rows) {
+  const id = btn.closest("tr").dataset.id;
+  const p = rows.find(r => r.id === id);
+  if (!p) return;
+  if (btn.dataset.act === "delete" && !confirm(`حذف ${p.full_name || p.email} نهائيًا؟ لن يستطيع الدخول، ويبقى سجل بحثه وملفاته للمراجعة.`)) return;
+  btn.disabled = true;
+  try {
+    await manage({ action: btn.dataset.act, user_id: id, role: btn.dataset.role });
+    const done = { delete: `حُذف ${p.email}.`, suspend: `أُوقف ${p.email} مؤقتًا.`, unsuspend: `أُعيد تفعيل ${p.email}.`, set_role: `تحدّثت صلاحية ${p.email}.` };
+    msg("inviteMsg", done[btn.dataset.act], true);
+    await Promise.all([loadUsers(), loadStats()]);
+  } catch (e) {
+    btn.disabled = false;
+    msg("inviteMsg", e.message, false);
+  }
+}
+
+$("invRole").onchange = () => { $("roleDesc").textContent = ROLE_DESC[$("invRole").value] || ""; };
+$("roleDesc").textContent = ROLE_DESC.user;
 
 $("inviteBtn").onclick = async () => {
   const email = $("invEmail").value.trim();
   if (!email) return msg("inviteMsg", "اكتب البريد.", false);
   $("inviteBtn").disabled = true;
   msg("inviteMsg", "جارٍ الإرسال…", true);
-  const { data: { session } } = await sb.auth.getSession();
-  const res = await fetch(`${WAQAA_CONFIG.url}/functions/v1/invite-user`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}`, "apikey": WAQAA_CONFIG.anonKey },
-    body: JSON.stringify({ email, full_name: $("invName").value.trim(), role: $("invRole").value }),
-  });
-  const out = await res.json().catch(() => ({}));
+  try {
+    await manage({ action: "invite", email, full_name: $("invName").value.trim(), role: $("invRole").value,
+                   redirect_to: location.origin + location.pathname });
+  } catch (e) {
+    $("inviteBtn").disabled = false;
+    return msg("inviteMsg", e.message, false);
+  }
   $("inviteBtn").disabled = false;
-  if (!res.ok) return msg("inviteMsg", out.error || "تعذر إرسال الدعوة.", false);
   msg("inviteMsg", `أُرسلت الدعوة إلى ${email}.`, true);
   $("invEmail").value = ""; $("invName").value = "";
   loadUsers(); loadStats();
