@@ -176,6 +176,7 @@
     <div id="tab-logs" class="hidden">
       <div class="card">
         <h2>من بحث ومتى</h2>
+        <p class="muted">نص البحث لا يُحفظ حفاظًا على الخصوصية — يُسجَّل من بحث، ومتى، وفي أي وضع ونطاق.</p>
         <div class="row">
           <div><label>العضو</label><select id="logUser"><option value="">الكل</option></select></div>
           <div><label>من تاريخ</label><input id="logFrom" type="date"></div>
@@ -183,7 +184,7 @@
           <div style="flex:0"><button class="btn ghost" id="logFilter">تصفية</button></div>
         </div>
         <div class="wrap" style="margin-top:12px"><table id="logsTable"><thead><tr>
-          <th>العضو</th><th>الوضع</th><th>البحث</th><th>النطاق</th><th>الوقت</th>
+          <th>العضو</th><th>الوضع</th><th>النطاق</th><th>الوقت</th>
         </tr></thead><tbody></tbody></table></div>
       </div>
     </div>
@@ -374,7 +375,7 @@ async function lookup(code) {
       .order("started_at", { ascending: false }).limit(10) : { data: [] };
     var relatedHtml = (related ?? []).length
       ? `<div style="margin-top:10px"><b style="font-size:13px">البحث الذي سبق الإصدار (خلال ساعة)</b>` +
-        related.map(r => `<div class="muted" style="margin-top:4px"><span class="pill">${esc(r.mode)}</span> ${esc(r.query)} — ${fmt(r.started_at)}</div>`).join("") + `</div>`
+        related.map(r => `<div class="muted" style="margin-top:4px"><span class="pill">${esc(r.mode)}</span> ${esc(r.region || "")} — ${fmt(r.started_at)}</div>`).join("") + `</div>`
       : `<div class="muted" style="margin-top:10px">لا عمليات بحث مسجلة في الساعة التي سبقت الإصدار.</div>`;
   }
   $("lookupResult").innerHTML = data
@@ -428,8 +429,8 @@ async function loadLogs() {
   const { data } = await q;
   $("logsTable").querySelector("tbody").innerHTML = (data ?? []).map(r => `<tr>
     <td class="lead">${esc(r.full_name || r.email)}</td><td data-l="الوضع"><span class="pill">${esc(r.mode)}</span></td>
-    <td data-l="البحث">${esc(r.query)}</td><td data-l="النطاق">${esc(r.region || "—")}</td><td data-l="الوقت">${fmt(r.started_at)}</td></tr>`).join("")
-    || `<tr><td colspan="5" class="muted">لا عمليات بحث بعد.</td></tr>`;
+    <td data-l="النطاق">${esc(r.region || "—")}</td><td data-l="الوقت">${fmt(r.started_at)}</td></tr>`).join("")
+    || `<tr><td colspan="4" class="muted">لا عمليات بحث بعد.</td></tr>`;
 }
 $("logFilter").onclick = loadLogs;
 
