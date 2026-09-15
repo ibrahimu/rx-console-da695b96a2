@@ -197,7 +197,8 @@
           <div><label>البريد</label><input id="invEmail" type="email" dir="ltr"></div>
           <div><label>الاسم (اختياري)</label><input id="invName"></div>
           <div><label>الصلاحية</label><select id="invRole"><option value="user">مستخدم</option><option value="admin">مشرف (يدير الأعضاء ويرى اللوحة)</option></select></div>
-          <div style="flex:0"><button class="btn" id="inviteBtn">دعوة</button></div>
+          <div style="flex:0"><button class="btn" id="codeBtn">إنشاء وعرض الكود</button></div>
+          <div style="flex:0"><button class="btn ghost" id="inviteBtn">إرسال بالبريد</button></div>
         </div>
         <p class="muted" id="roleDesc" style="margin:8px 0 0"></p>
         <div id="inviteMsg"></div>
@@ -467,6 +468,24 @@ async function userAction(btn, rows) {
 
 $("invRole").onchange = () => { $("roleDesc").textContent = ROLE_DESC[$("invRole").value] || ""; };
 $("roleDesc").textContent = ROLE_DESC.user;
+
+// الكود يُعرض هنا بلا أي بريد — المشرف يسلّمه بنفسه؛ يتجاوز حدّ الرسائل والعناوين المرتدة
+$("codeBtn").onclick = async () => {
+  const email = $("invEmail").value.trim().toLowerCase();
+  if (!email.includes("@")) return msg("inviteMsg", "اكتب البريد.", false);
+  $("codeBtn").disabled = true;
+  try {
+    const out = await manage({ action: "invite_code", email, full_name: $("invName").value.trim(), role: $("invRole").value });
+    $("inviteMsg").innerHTML = `<div class="result"><div class="muted">كود التفعيل لـ <span class="code">${esc(email)}</span></div>
+      <div class="big code" style="font-size:30px;letter-spacing:.3em">${esc(out.code)}</div>
+      <div class="muted">صالح 3 ساعات ولمرة واحدة. يفتح العضو التطبيق ← «أول مرة؟ فعّل حسابك» ← بريده والكود.</div></div>`;
+    $("invEmail").value = ""; $("invName").value = "";
+    loadUsers(); loadStats();
+  } catch (e) {
+    msg("inviteMsg", e.message, false);
+  }
+  $("codeBtn").disabled = false;
+};
 
 $("inviteBtn").onclick = async () => {
   const email = $("invEmail").value.trim();
